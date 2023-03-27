@@ -7,5 +7,5 @@ import org.springframework.boot.runApplication
 class SocketTestApplication
 
 fun main(args: Array<String>) {
-    runApplication<com.jc.cryptichat.SocketTestApplication>(*args)
+    runApplication<SocketTestApplication>(*args)
 }

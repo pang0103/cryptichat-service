@@ -1,6 +1,6 @@
 package com.jc.cryptichat.guest
 
-import com.example.sockettest.security.TokenService
+import com.jc.cryptichat.security.TokenService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.CrossOrigin
 import org.springframework.web.bind.annotation.PostMapping

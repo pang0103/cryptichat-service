@@ -1,9 +1,9 @@
 package com.jc.cryptichat.lobby
 
-import com.example.sockettest.lobby.dto.CreateLobbyResponseDto
-import com.example.sockettest.lobby.dto.JoinLobbyRequestDto
-import com.example.sockettest.lobby.dto.JoinLobbyResponseDto
-import com.example.sockettest.utils.SessionUtils
+import com.jc.cryptichat.lobby.dto.CreateLobbyResponseDto
+import com.jc.cryptichat.lobby.dto.JoinLobbyRequestDto
+import com.jc.cryptichat.lobby.dto.JoinLobbyResponseDto
+import com.jc.cryptichat.utils.SessionUtils
 import org.springframework.web.bind.annotation.CrossOrigin
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
