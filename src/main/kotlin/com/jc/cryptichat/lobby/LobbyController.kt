@@ -3,7 +3,8 @@ package com.jc.cryptichat.lobby
 import com.jc.cryptichat.lobby.dto.CreateLobbyResponseDto
 import com.jc.cryptichat.lobby.dto.JoinLobbyRequestDto
 import com.jc.cryptichat.lobby.dto.JoinLobbyResponseDto
-import com.jc.cryptichat.utils.SessionUtils
+import com.jc.cryptichat.utils.LobbySessionUtils
+import com.jc.cryptichat.utils.UserSessionUtils
 import org.springframework.web.bind.annotation.CrossOrigin
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -20,8 +21,7 @@ class LobbyController {
     fun createLobby(): CreateLobbyResponseDto {
         val code = String.format("%04d", (0..9999).random())
         val roomId = UUID.randomUUID().toString()
-        SessionUtils.put(code, roomId)
-
+        LobbySessionUtils.put(code, roomId)
         return CreateLobbyResponseDto(
             code = code,
         )
@@ -31,7 +31,7 @@ class LobbyController {
     fun joinLobby(
         @RequestBody joinLobbyRequestDto: JoinLobbyRequestDto
     ): JoinLobbyResponseDto {
-        if (SessionUtils.get(joinLobbyRequestDto.code) == null) return JoinLobbyResponseDto(
+        if (LobbySessionUtils.get(joinLobbyRequestDto.code) == null) return JoinLobbyResponseDto(
             accepted = false,
         )
 

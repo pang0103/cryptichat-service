@@ -5,6 +5,10 @@ import com.corundumstudio.socketio.annotation.OnConnect
 import com.corundumstudio.socketio.annotation.OnDisconnect
 import com.corundumstudio.socketio.annotation.OnEvent
 import com.jc.cryptichat.chat.dto.*
+import com.jc.cryptichat.utils.LobbySessionUtils
+import com.jc.cryptichat.utils.UserSessionUtils
+import com.jc.cryptichat.utils.UserSession
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
 @Component
@@ -12,70 +16,92 @@ class SocketHandler(
     private val socketIOServer: com.corundumstudio.socketio.SocketIOServer
 ) {
 
-    private val LOG = org.slf4j.LoggerFactory.getLogger(com.jc.cryptichat.chat.SocketHandler::class.java)
+    private val LOG = LoggerFactory.getLogger(SocketHandler::class.java)
 
     @OnConnect
     fun onConnect(client: SocketIOClient) {
-        client.joinRoom("room1")
+        UserSessionUtils.put(client.sessionId.toString(), UserSession(
+            id = client.sessionId.toString(),
+        ))
         LOG.info("Client connected: ${client.remoteAddress}")
     }
 
     @OnDisconnect
     fun onDisconnect(client: SocketIOClient) {
-        client.allRooms.forEach{
-            LOG.info(
-                "Client disconnected: ${client.remoteAddress}, room: $it"
+        UserSessionUtils.get(client.sessionId.toString())?.let {
+            socketIOServer.getRoomOperations(it.roomId).sendEvent(
+                ChatEvent.DISCONNECT_ANNOUNCEMENT,
+                DisconnectNoticeDto(
+                    author = it.username ?: "Unknown",
+                    reason = "Client disconnected"
+                )
             )
         }
-
+        UserSessionUtils.remove(client.sessionId.toString())
         LOG.info("Client disconnected: ${client.remoteAddress}")
     }
 
-    @OnEvent(com.jc.cryptichat.chat.ChatEvent.CREATE_LOBBY)
+    @OnEvent(ChatEvent.CREATE_LOBBY)
     fun onCreateLobby(client: SocketIOClient, data: ChatRoomJoinRequest) {
         client.joinRoom(data.code)
+        UserSessionUtils.get(client.sessionId.toString())?.let {
+            it.username = data.user
+            it.lobbyId = data.code
+            UserSessionUtils.put(client.sessionId.toString(), it)
+        }
         LOG.info("Event lobby join ---> Client ${client.sessionId} joined room: ${data.code}")
     }
 
-    @OnEvent(com.jc.cryptichat.chat.ChatEvent.JOIN_LOBBY_REQUEST)
+    @OnEvent(ChatEvent.JOIN_LOBBY_REQUEST)
     fun onJoinLobbyRequest(client: SocketIOClient, data: LobbyJoinRequestDto) {
         socketIOServer
             .getRoomOperations(data.room)
-            .sendEvent(com.jc.cryptichat.chat.ChatEvent.PEER_REQUEST_JOIN_LOBBY, data)
+            .sendEvent(ChatEvent.PEER_REQUEST_JOIN_LOBBY, data)
         LOG.info("Event lobby join ---> Client ${client.sessionId} requested to join room: ${data.room}")
     }
 
-    @OnEvent(com.jc.cryptichat.chat.ChatEvent.JOIN_LOBBY_RESPONSE)
+    @OnEvent(ChatEvent.JOIN_LOBBY_RESPONSE)
     fun onJoinLobbyResponse(client: SocketIOClient, data: LobbyJoinResponseDto) {
         socketIOServer
             .getRoomOperations(data.room)
-            .sendEvent(com.jc.cryptichat.chat.ChatEvent.PEER_RESPONSE_JOIN_LOBBY, data)
+            .sendEvent(ChatEvent.PEER_RESPONSE_JOIN_LOBBY, data)
         LOG.info("Event lobby join ---> Client ${client.sessionId} responded to join room: ${data.room}")
     }
 
-    @OnEvent(com.jc.cryptichat.chat.ChatEvent.LOBBY_LEAVE)
+    @OnEvent(ChatEvent.LOBBY_LEAVE)
     fun onLobbyLeave(client: SocketIOClient, data: ChatRoomJoinRequest) {
         client.leaveRoom(data.code)
         LOG.info("Event lobby leave ---> Client ${client.sessionId} left room: ${data.code}")
     }
 
-    @OnEvent(com.jc.cryptichat.chat.ChatEvent.CHATROOM_JOIN_ACCEPT)
+    @OnEvent(ChatEvent.CHATROOM_JOIN_ACCEPT)
     fun onChatRoomJoin(client: SocketIOClient, data: ChatRoomJoinRequest) {
-        client.joinRoom(data.code)
-        LOG.info("Event chatroom join ---> Client ${client.sessionId} joined room: ${data.code}")
+        val roomId = LobbySessionUtils.get(data.code)
+        if (roomId == null) {
+            LOG.error("Room not found: ${data.code}")
+        } else {
+            client.joinRoom(roomId)
+            UserSessionUtils.get(client.sessionId.toString())?.let {
+                it.roomId = roomId
+                it.username = data.user
+                UserSessionUtils.put(client.sessionId.toString(), it)
+            }
+
+            LOG.info("Event chatroom join ---> Client ${client.sessionId} joined room: $roomId")
+        }
     }
 
-    @OnEvent(com.jc.cryptichat.chat.ChatEvent.CHAT_MESSAGE_OUTGOING)
+    @OnEvent(ChatEvent.CHAT_MESSAGE_OUTGOING)
     fun onSendMessage(client: SocketIOClient, data: ChatMessage) {
-        LOG.info("Event chat message ---> Client ${client.sessionId} sent message: ${data.content}")
-        socketIOServer.getRoomOperations(data.room).sendEvent(com.jc.cryptichat.chat.ChatEvent.CHAT_MESSAGE_INCOMING, data.content)
+        LOG.trace("Event chat message ---> Client ${client.sessionId} sent message: ${data.content}")
+        socketIOServer.getRoomOperations(data.room).sendEvent(ChatEvent.CHAT_MESSAGE_INCOMING, data.content)
     }
 
-    @OnEvent(com.jc.cryptichat.chat.ChatEvent.USER_TYPING_SEND)
+    @OnEvent(ChatEvent.USER_TYPING_SEND)
     fun onUserTyping(client: SocketIOClient, data: TypingEventDto) {
-        LOG.info("Event user typing ---> Client ${client.sessionId} is typing in room: ${data}")
+        LOG.trace("Event user typing ---> Client ${client.sessionId} is typing in room: ${data}")
         client.sessionId
-        socketIOServer.getRoomOperations(data.room).sendEvent(com.jc.cryptichat.chat.ChatEvent.USER_TYPING_RECEIVE, data)
+        socketIOServer.getRoomOperations(data.room).sendEvent(ChatEvent.USER_TYPING_RECEIVE, data)
     }
 
     @OnEvent("chat")
