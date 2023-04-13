@@ -9,9 +9,6 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 class SocketIOConfig {
 
-    @Value("\${socketio.host}")
-    private lateinit var host: String
-
     @Value("\${socketio.port}")
     private lateinit var port: String
 
@@ -19,7 +16,6 @@ class SocketIOConfig {
     @Bean
     fun socketIOServer(): SocketIOServer {
         val config = com.corundumstudio.socketio.Configuration()
-        config.hostname = host
         config.port = port.toInt()
         config.context = "/socket.io"
         return SocketIOServer(config)

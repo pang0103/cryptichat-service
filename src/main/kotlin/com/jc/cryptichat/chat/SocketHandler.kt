@@ -20,24 +20,23 @@ class SocketHandler(
 
     @OnConnect
     fun onConnect(client: SocketIOClient) {
-        UserSessionUtils.put(client.sessionId.toString(), UserSession(
-            id = client.sessionId.toString(),
-        ))
+        UserSessionUtils.put(
+            client.sessionId.toString(), UserSession(
+                id = client.sessionId.toString(),
+            )
+        )
         LOG.info("Client connected: ${client.remoteAddress}")
     }
 
     @OnDisconnect
     fun onDisconnect(client: SocketIOClient) {
-        UserSessionUtils.get(client.sessionId.toString())?.let {
-            socketIOServer.getRoomOperations(it.roomId).sendEvent(
-                ChatEvent.DISCONNECT_ANNOUNCEMENT,
-                DisconnectNoticeDto(
-                    author = it.username ?: "Unknown",
-                    reason = "Client disconnected"
-                )
-            )
+        val userSession = UserSessionUtils.get(client.sessionId.toString())
+        userSession?.roomId?.let {
+            val author = userSession.username ?: "Unknown"
+            val reason = "Client disconnected"
+            socketIOServer.getRoomOperations(it)
+                .sendEvent(ChatEvent.DISCONNECT_ANNOUNCEMENT, DisconnectNoticeDto(author, reason))
         }
-        UserSessionUtils.remove(client.sessionId.toString())
         LOG.info("Client disconnected: ${client.remoteAddress}")
     }
 
@@ -54,17 +53,13 @@ class SocketHandler(
 
     @OnEvent(ChatEvent.JOIN_LOBBY_REQUEST)
     fun onJoinLobbyRequest(client: SocketIOClient, data: LobbyJoinRequestDto) {
-        socketIOServer
-            .getRoomOperations(data.room)
-            .sendEvent(ChatEvent.PEER_REQUEST_JOIN_LOBBY, data)
+        socketIOServer.getRoomOperations(data.room).sendEvent(ChatEvent.PEER_REQUEST_JOIN_LOBBY, data)
         LOG.info("Event lobby join ---> Client ${client.sessionId} requested to join room: ${data.room}")
     }
 
     @OnEvent(ChatEvent.JOIN_LOBBY_RESPONSE)
     fun onJoinLobbyResponse(client: SocketIOClient, data: LobbyJoinResponseDto) {
-        socketIOServer
-            .getRoomOperations(data.room)
-            .sendEvent(ChatEvent.PEER_RESPONSE_JOIN_LOBBY, data)
+        socketIOServer.getRoomOperations(data.room).sendEvent(ChatEvent.PEER_RESPONSE_JOIN_LOBBY, data)
         LOG.info("Event lobby join ---> Client ${client.sessionId} responded to join room: ${data.room}")
     }
 

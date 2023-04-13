@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentMap
 /**
  * Minimalistic in-memory store for rooms. To replace by redis
  */
+@Deprecated("To be replaced by redis")
 object UserSessionUtils {
     private val socketSession: ConcurrentMap<String, UserSession> = ConcurrentHashMap()
 

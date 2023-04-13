@@ -24,12 +24,10 @@ object ChatEvent {
     const val CHAT_MESSAGE_INCOMING = "receive_message"
     const val CHAT_TYPING = "userTyping"
 
-
     /**
      * User behavior
      */
     const val USER_TYPING_SEND = "userTyping"
     const val USER_TYPING_RECEIVE = "receive_userTyping"
     const val DISCONNECT_ANNOUNCEMENT = "dcNotice"
-
 }
